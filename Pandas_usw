@@ -1,0 +1,130 @@
+# ================================================
+# 📊 Abschlussprojekt: Datenanalyse & ML mit Pandas
+# ================================================
+
+# 1. Bibliotheken importieren
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, mean_absolute_error
+from sklearn.preprocessing import OneHotEncoder
+from xgboost import XGBClassifier, XGBRegressor
+
+# 2. CSV-Datei einlesen
+print("\n==> Daten einlesen")
+file_path = "./data/winequality-red.csv"
+df = pd.read_csv(file_path, delimiter=';')
+
+# 3. Daten erkunden
+print("\n==> Erste 5 Zeilen:")
+print(df.head())
+print("\n==> Letzte 5 Zeilen:")
+print(df.tail())
+print("\n==> DataFrame-Infos:")
+print(df.info())
+print("\n==> Statistische Übersicht:")
+print(df.describe())
+
+# 4. Spaltenauswahl & Filter
+print("\n==> Auswahl: 'alcohol' & 'pH'")
+print(df[['alcohol', 'pH']].head(10))
+
+print("\n==> Zeilen mit Qualität = 8")
+print(df[df['quality'] == 8])
+
+print("\n==> Alkohol > 12.5 & Qualität >= 7")
+print(df[(df['alcohol'] > 12.5) & (df['quality'] >= 7)])
+
+# 5. Neue Spalte berechnen
+df['density_alcohol_ratio'] = df['density'] / df['alcohol']
+print("\n==> Neue Spalte: Dichte / Alkohol")
+print(df[['density_alcohol_ratio']].head())
+
+# 6. Qualitätswerte als Label umwandeln
+def quality_label(q):
+    if q == 3:
+        return "sehr schlecht"
+    elif q == 4:
+        return "schlecht"
+    elif q == 5:
+        return "okay"
+    elif q == 6:
+        return "gut"
+    else:
+        return "sehr gut"
+
+df['quality_label'] = df['quality'].apply(quality_label)
+print("\n==> Quality Labels:")
+print(df[['quality', 'quality_label']].head())
+
+# 7. pH-Wert filtern
+df = df[df['pH'] >= 3.0]
+print("\n==> Nach Entfernen von pH < 3.0")
+print(df.head())
+
+# 8. Spaltennamen anzeigen & umbenennen
+print("\n==> Originale Spaltennamen:")
+print(df.columns)
+
+deutsch_columns = {
+    'fixed acidity': 'fester Säuregehalt',
+    'volatile acidity': 'flüchtiger Säuregehalt',
+    'citric acid': 'Zitronensäure',
+    'residual sugar': 'Restzucker',
+    'chlorides': 'Chloride',
+    'free sulfur dioxide': 'freies Schwefeldioxid',
+    'total sulfur dioxide': 'Gesamtschwefeldioxid',
+    'density': 'Dichte',
+    'pH': 'pH-Wert',
+    'sulphates': 'Sulfate',
+    'alcohol': 'Alkohol',
+    'quality': 'Qualität'
+}
+df.rename(columns=deutsch_columns, inplace=True)
+print("\n==> Nach Umbenennung:")
+print(df.head())
+
+# 9. Visualisierung
+print("\n==> Erstelle Scatterplot (Alkohol vs. Qualität)")
+sns.scatterplot(x=df['Alkohol'], y=df['Qualität'])
+plt.xlabel("Alkoholgehalt")
+plt.ylabel("Qualität")
+plt.title("Alkohol vs. Qualität")
+plt.show()
+
+# 10. DecisionTreeClassifier
+print("\n==> Decision Tree Klassifikation")
+df_ml = pd.read_csv(file_path, delimiter=';')
+X = df_ml.drop(['quality'], axis=1)
+y = df_ml['quality']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+tree_model = DecisionTreeClassifier()
+tree_model.fit(X_train, y_train)
+tree_pred = tree_model.predict(X_test)
+print("Genauigkeit (Decision Tree):", accuracy_score(y_test, tree_pred))
+
+# 11. XGBoost Klassifikation
+print("\n==> XGBoost Klassifikation (Iris)")
+iris = pd.read_csv("./data/iris.csv")
+oe = OneHotEncoder()
+y_encoded = oe.fit_transform(iris[['species']]).toarray()
+iris_features = iris.drop(['species'], axis=1)
+X_train, X_test, y_train, y_test = train_test_split(iris_features, y_encoded, test_size=0.2)
+xgb_clf = XGBClassifier()
+xgb_clf.fit(X_train, y_train)
+xgb_pred = xgb_clf.predict(X_test)
+print("Genauigkeit (XGBoost Klassifikation):", accuracy_score(y_test, xgb_pred))
+
+# 12. XGBoost Regression
+print("\n==> XGBoost Regression (sepal.length)")
+iris = pd.read_csv("./data/iris.csv")
+iris['species'] = iris['species'].astype('category').cat.codes
+y_reg = iris['sepal.length']
+X_reg = iris.drop(['sepal.length'], axis=1)
+X_train, X_test, y_train, y_test = train_test_split(X_reg, y_reg, test_size=0.2)
+xgb_reg = XGBRegressor()
+xgb_reg.fit(X_train, y_train)
+pred = xgb_reg.predict(X_test)
+print("MAE (XGBoost Regression):", mean_absolute_error(y_test, pred))
